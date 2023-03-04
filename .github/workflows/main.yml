@@ -1,0 +1,44 @@
+name: Update Checker
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 0 15 * *
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+      
+    - name: 安装python3
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10' 
+        
+    - name: 运行
+      run: |
+        pip install geoip2
+        rm -f ./GeoLite2-Country.mmdb
+        rm -f ./*.txt
+        rm -f ./cfip.data
+        wget https://git.io/GeoLite2-Country.mmdb
+        wget https://raw.githubusercontent.com/XIU2/CloudflareSpeedTest/master/ip.txt -O cfip.data && sed -i '/^\s*$/d' cfip.data
+        python3 run.py
+  
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 1
+        token: ${{ secrets.GER_TOKEN }}
+        repository: ${{ github.repository }}
+    
+    - name: 合并文件并commit
+      uses: EndBug/add-and-commit@main
+      with:
+        author_name: GitHub Action
+        author_email: noreply@github.com
+        message: 'Update data'
+        add: "-A"
+      env:
+        token: ${{ secrets.GER_TOKEN }}
